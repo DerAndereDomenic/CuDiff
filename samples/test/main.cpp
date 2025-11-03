@@ -3,9 +3,10 @@
 
 int main()
 {
-    CuDiff::Dual<3> x(1.0f, 0);
-    CuDiff::Dual<3> y(-2.0f, 1);
-    CuDiff::Dual<3> z(5.0f, 2);
+    CuDiff::VarLayout layout;
+    CuDiff::Dual<3> x(1.0f, layout.alloc<float>());
+    CuDiff::Dual<3> y(-2.0f, layout.alloc<float>());
+    CuDiff::Dual<3> z(5.0f, layout.alloc<float>());
 
     auto f = (3.0f * x + (-2.0 - y) * y) / z - 3.0f;
     f      = -f * f;
