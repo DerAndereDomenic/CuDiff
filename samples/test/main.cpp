@@ -3,13 +3,9 @@
 
 int main()
 {
-    CuDiff::Dual<3> x = 1.0f;
-    CuDiff::Dual<3> y = -2.0f;
-    CuDiff::Dual<3> z = 5.0f;
-
-    x.setDerivative(0, 1.0f);
-    y.setDerivative(1, 1.0f);
-    z.setDerivative(2, 1.0f);
+    CuDiff::Dual<3> x(1.0f, 0);
+    CuDiff::Dual<3> y(-2.0f, 1);
+    CuDiff::Dual<3> z(5.0f, 2);
 
     auto f = (3.0f * x + (-2.0 - y) * y) / z - 3.0f;
     f      = -f * f;

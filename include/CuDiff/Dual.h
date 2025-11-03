@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CuDiff/Platform.h>
+#include <CuDiff/Traits.h>
 
 namespace CuDiff
 {
@@ -24,6 +25,30 @@ public:
      * @param val The value
      */
     CUDIFF_HOSTDEVICE Dual(T val) : _val(val) {}
+
+    /**
+     * @brief Create a dual variable that tracks derivatives with respect to variable_index.
+     * Note that this assumes that if T is a multi-value type (like vec3) that each component is a independent variable
+     * and initializes the corresponding jacobian columns.
+     * Example:
+     *
+     * Dual<4, vec2> v1(vec3(1,2), 0); // uses slots [0,1]
+     * v1.derivatives = [(1,0),(0,1),(0,0),(0,0)]
+     * Dual<4, vec2> v2(vec3(3,4), 2); // uses slots [2,3]
+     * v2.derivatives = [(0,0),(0,0),(1,0),(0,1)]
+     *
+     * @param val The value
+     * @param variable_index The start index of the tracked variable
+     */
+    CUDIFF_HOSTDEVICE Dual(T val, size_t variable_index) : _val(val)
+    {
+        using Traits           = DerivativeTraits<T>;
+        constexpr size_t comps = Traits::components();
+        for(int i = 0; i < comps; ++i)
+        {
+            _derivatives[variable_index + i] = Traits::unit(i);
+        }
+    }
 
     /**
      * @brief Get the stored value
