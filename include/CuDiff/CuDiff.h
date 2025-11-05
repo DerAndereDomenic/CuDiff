@@ -5,3 +5,4 @@
 #include <CuDiff/Function.h>
 #include <CuDiff/Traits.h>
 #include <CuDiff/VarLayout.h>
+#include <CuDiff/Factory.h>
