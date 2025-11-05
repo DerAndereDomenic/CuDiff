@@ -18,7 +18,7 @@ public:
     /**
      * @brief Default constructor
      */
-    CUDIFF_HOSTDEVICE Dual() = default;
+    Dual() = default;
 
     /**
      * @brief Constructor
