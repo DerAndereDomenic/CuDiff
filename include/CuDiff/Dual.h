@@ -86,4 +86,17 @@ private:
         T(0),
     };
 };
+
+template<typename>
+struct is_dual : std::false_type
+{
+};
+
+template<int N, typename T>
+struct is_dual<Dual<N, T>> : std::true_type
+{
+};
+
+template<typename T>
+inline constexpr bool is_dual_v = is_dual<T>::value;
 }    // namespace CuDiff
