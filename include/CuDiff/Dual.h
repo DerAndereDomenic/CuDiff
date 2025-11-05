@@ -78,7 +78,7 @@ public:
      *
      * @return The value
      */
-    CUDIFF_HOSTDEVICE T val() const { return _val; }
+    CUDIFF_HOSTDEVICE const T& val() const { return _val; }
 
 private:
     T _val            = T(0);
@@ -99,4 +99,19 @@ struct is_dual<Dual<N, T>> : std::true_type
 
 template<typename T>
 inline constexpr bool is_dual_v = is_dual<T>::value;
+
+template<typename T>
+struct dual_value_type
+{
+    using type = T;
+};
+
+template<int N, typename T>
+struct dual_value_type<Dual<N, T>>
+{
+    using type = T;
+};
+
+template<typename T>
+using dual_value_t = typename dual_value_type<T>::type;
 }    // namespace CuDiff
