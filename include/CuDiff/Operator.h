@@ -5,12 +5,13 @@
 
 namespace CuDiff
 {
-template<int N, typename T, typename U = float>
+template<int N, typename T, typename U>
 struct OperatorAdd
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const Dual<N, U>& b)
     {
-        Dual<N, T> r(a.val() + b.val());
+        using R = decltype(a.val() + b.val());
+        Dual<N, R> r(a.val() + b.val());
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, a.derivative(i) + b.derivative(i));
@@ -18,18 +19,19 @@ struct OperatorAdd
         return r;
     }
 
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const U& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorAdd<N, T, U>::call(a, Dual<N, T>(static_cast<T>(b)));
+        return OperatorAdd<N, T, U>::call(a, Dual<N, U>(b));
     }
 };
 
-template<int N, typename T, typename U = float>
+template<int N, typename T, typename U>
 struct OperatorSub
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const Dual<N, U>& b)
     {
-        Dual<N, T> r(a.val() - b.val());
+        using R = decltype(a.val() - b.val());
+        Dual<N, R> r(a.val() - b.val());
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, a.derivative(i) - b.derivative(i));
@@ -37,23 +39,24 @@ struct OperatorSub
         return r;
     }
 
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const U& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorSub<N, T, U>::call(a, Dual<N, T>(static_cast<T>(b)));
+        return OperatorSub<N, T, U>::call(a, Dual<N, U>(b));
     }
 
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const U& a, const Dual<N, T>& b)
+    CUDIFF_HOSTDEVICE static auto call(const U& a, const Dual<N, T>& b)
     {
-        return OperatorSub<N, T, U>::call(Dual<N, T>(static_cast<T>(a)), b);
+        return OperatorSub<N, T, U>::call(Dual<N, U>(a), b);
     }
 };
 
-template<int N, typename T, typename U = float>
+template<int N, typename T, typename U>
 struct OperatorMul
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const Dual<N, U>& b)
     {
-        Dual<N, T> r(a.val() * b.val());
+        using R = decltype(a.val() * b.val());
+        Dual<N, R> r(a.val() * b.val());
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, a.derivative(i) * b.val() + a.val() * b.derivative(i));
@@ -61,18 +64,19 @@ struct OperatorMul
         return r;
     }
 
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const U& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorMul<N, T, U>::call(a, Dual<N, T>(static_cast<T>(b)));
+        return OperatorMul<N, T, U>::call(a, Dual<N, U>(b));
     }
 };
 
-template<int N, typename T, typename U = float>
+template<int N, typename T, typename U>
 struct OperatorDiv
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const Dual<N, U>& b)
     {
-        Dual<N, T> r(a.val() / b.val());
+        using R = decltype(a.val() / b.val());
+        Dual<N, R> r(a.val() / b.val());
         T denom = b.val() * b.val();
         for(size_t i = 0; i < N; ++i)
         {
@@ -81,91 +85,91 @@ struct OperatorDiv
         return r;
     }
 
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const U& b)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorDiv<N, T, U>::call(a, Dual<N, T>(static_cast<T>(b)));
+        return OperatorDiv<N, T, U>::call(a, Dual<N, U>(b));
     }
 
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const U& a, const Dual<N, T>& b)
+    CUDIFF_HOSTDEVICE static auto call(const U& a, const Dual<N, T>& b)
     {
-        return OperatorDiv<N, T, U>::call(Dual<N, T>(static_cast<T>(a)), b);
+        return OperatorDiv<N, T, U>::call(Dual<N, U>(a), b);
     }
 };
 
-template<int N, typename T, typename U = float>
+template<int N, typename T>
 struct OperatorNeg
 {
     CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a) { return Dual<N, T>(0) - a; }
 };
 
 // Binary arithmetic operators
-template<int N, typename T>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const Dual<N, T>& a, const Dual<N, T>& b)
-{
-    return OperatorAdd<N, T>::call(a, b);
-}
-
-template<int N, typename T>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const Dual<N, T>& a, const Dual<N, T>& b)
-{
-    return OperatorSub<N, T>::call(a, b);
-}
-
-template<int N, typename T>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator*(const Dual<N, T>& a, const Dual<N, T>& b)
-{
-    return OperatorMul<N, T>::call(a, b);
-}
-
-template<int N, typename T>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator/(const Dual<N, T>& a, const Dual<N, T>& b)
-{
-    return OperatorDiv<N, T>::call(a, b);
-}
-
 template<int N, typename T, typename U>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator+(const Dual<N, T>& a, const Dual<N, U>& b)
 {
     return OperatorAdd<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const U& a, const Dual<N, T>& b)
-{
-    return OperatorAdd<N, T, U>::call(b, a);
-}
-
-template<int N, typename T, typename U>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator-(const Dual<N, T>& a, const Dual<N, U>& b)
 {
     return OperatorSub<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const U& a, const Dual<N, T>& b)
-{
-    return OperatorSub<N, T, U>::call(a, b);
-}
-
-template<int N, typename T, typename U>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator*(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator*(const Dual<N, T>& a, const Dual<N, U>& b)
 {
     return OperatorMul<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U>
+CUDIFF_HOSTDEVICE inline auto operator/(const Dual<N, T>& a, const Dual<N, U>& b)
+{
+    return OperatorDiv<N, T, U>::call(a, b);
+}
+
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
+CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const Dual<N, T>& a, const U& b)
+{
+    return OperatorAdd<N, T, U>::call(a, b);
+}
+
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
+CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const U& a, const Dual<N, T>& b)
+{
+    return OperatorAdd<N, T, U>::call(b, a);
+}
+
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
+CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const Dual<N, T>& a, const U& b)
+{
+    return OperatorSub<N, T, U>::call(a, b);
+}
+
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
+CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const U& a, const Dual<N, T>& b)
+{
+    return OperatorSub<N, T, U>::call(a, b);
+}
+
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
+CUDIFF_HOSTDEVICE inline Dual<N, T> operator*(const Dual<N, T>& a, const U& b)
+{
+    return OperatorMul<N, T, U>::call(a, b);
+}
+
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
 CUDIFF_HOSTDEVICE inline Dual<N, T> operator*(const U& a, const Dual<N, T>& b)
 {
     return OperatorMul<N, T, U>::call(b, a);
 }
 
-template<int N, typename T, typename U>
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
 CUDIFF_HOSTDEVICE inline Dual<N, T> operator/(const Dual<N, T>& a, const U& b)
 {
     return OperatorDiv<N, T, U>::call(a, b);
 }
 
-template<int N, typename T, typename U>
+template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
 CUDIFF_HOSTDEVICE inline Dual<N, T> operator/(const U& a, const Dual<N, T>& b)
 {
     return OperatorDiv<N, T, U>::call(b, a);
