@@ -227,6 +227,140 @@ struct OperatorPow
 };
 
 template<int N, typename T>
+struct OperatorSign
+{
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x)
+    {
+        auto v = x.val();
+        auto s = (v > T(0)) ? T(1) : (v < T(0)) ? T(-1) : T(0);
+
+        Dual<N, T> res(s);
+        // Derivative of sign(x) is zero almost everywhere
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, T(0));
+        }
+        return res;
+    }
+};
+
+template<int N, typename T>
+struct OperatorFloor
+{
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x)
+    {
+        Dual<N, T> res(std::floor(x.val()));
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, T(0));
+        }
+        return res;
+    }
+};
+
+template<int N, typename T>
+struct OperatorCeil
+{
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x)
+    {
+        Dual<N, T> res(std::ceil(x.val()));
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, T(0));
+        }
+        return res;
+    }
+};
+
+template<int N, typename T>
+struct OperatorMin
+{
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    {
+        bool takeA = a.val() < b.val();
+        Dual<N, T> res(takeA ? a.val() : b.val());
+
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, takeA ? a.derivative(i) : b.derivative(i));
+        }
+
+        return res;
+    }
+};
+
+template<int N, typename T>
+struct OperatorMax
+{
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    {
+        bool takeA = a.val() > b.val();
+        Dual<N, T> res(takeA ? a.val() : b.val());
+
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, takeA ? a.derivative(i) : b.derivative(i));
+        }
+
+        return res;
+    }
+};
+
+template<int N, typename T>
+struct OperatorClamp
+{
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const Dual<N, T>& lo, const Dual<N, T>& hi)
+    {
+        if(x.val() < lo.val())
+        {
+            Dual<N, T> res(lo.val());
+            for(int i = 0; i < N; ++i)
+                res.setDerivative(i, lo.derivative(i));
+            return res;
+        }
+        else if(x.val() > hi.val())
+        {
+            Dual<N, T> res(hi.val());
+            for(int i = 0; i < N; ++i)
+                res.setDerivative(i, hi.derivative(i));
+            return res;
+        }
+        else
+        {
+            Dual<N, T> res(x.val());
+            for(int i = 0; i < N; ++i)
+                res.setDerivative(i, x.derivative(i));
+            return res;
+        }
+    }
+
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const T& lo, const T& hi)
+    {
+        if(x.val() < lo)
+        {
+            Dual<N, T> res(lo);
+            for(int i = 0; i < N; ++i)
+                res.setDerivative(i, T(0));
+            return res;
+        }
+        else if(x.val() > hi)
+        {
+            Dual<N, T> res(hi);
+            for(int i = 0; i < N; ++i)
+                res.setDerivative(i, T(0));
+            return res;
+        }
+        else
+        {
+            Dual<N, T> res(x.val());
+            for(int i = 0; i < N; ++i)
+                res.setDerivative(i, x.derivative(i));
+            return res;
+        }
+    }
+};
+
+template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> sqrt(const Dual<N, T>& a)
 {
     return OperatorSqrt<N, T>::call(a);
@@ -302,5 +436,47 @@ template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> pow(const Dual<N, T>& f, const Dual<N, T>& g)
 {
     return OperatorPow<N, T>::call(f, g);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> sign(const Dual<N, T>& x)
+{
+    return OperatorSign<N, T>::call(x);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> floor(const Dual<N, T>& x)
+{
+    return OperatorFloor<N, T>::call(x);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> ceil(const Dual<N, T>& x)
+{
+    return OperatorCeil<N, T>::call(x);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> min(const Dual<N, T>& a, const Dual<N, T>& b)
+{
+    return OperatorMin<N, T>::call(a, b);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> max(const Dual<N, T>& a, const Dual<N, T>& b)
+{
+    return OperatorMax<N, T>::call(a, b);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> clamp(const Dual<N, T>& x, const Dual<N, T>& lo, const Dual<N, T>& hi)
+{
+    return OperatorClamp<N, T>::call(x, lo, hi);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> clamp(const Dual<N, T>& x, const T& lo, const T& hi)
+{
+    return OperatorClamp<N, T>::call(x, lo, hi);
 }
 }    // namespace CuDiff
