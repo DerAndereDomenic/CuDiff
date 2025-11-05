@@ -101,7 +101,7 @@ struct OperatorDiv
     {
         using R = decltype(a.val() / b.val());
         Dual<N, R> r(a.val() / b.val());
-        T denom = b.val() * b.val();
+        auto denom = b.val() * b.val();
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, (a.derivative(i) * b.val() - a.val() * b.derivative(i)) / denom);
@@ -124,7 +124,7 @@ struct OperatorDiv
     {
         using R = decltype(a / b.val());
         Dual<N, R> r(a / b.val());
-        T denom = b.val() * b.val();
+        auto denom = b.val() * b.val();
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, (-a.val() * b.derivative(i)) / denom);
@@ -165,49 +165,49 @@ CUDIFF_HOSTDEVICE inline auto operator/(const Dual<N, T>& a, const Dual<N, U>& b
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator+(const Dual<N, T>& a, const U& b)
 {
     return OperatorAdd<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator+(const U& a, const Dual<N, T>& b)
+CUDIFF_HOSTDEVICE inline auto operator+(const U& a, const Dual<N, T>& b)
 {
     return OperatorAdd<N, T, U>::call(b, a);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator-(const Dual<N, T>& a, const U& b)
 {
     return OperatorSub<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator-(const U& a, const Dual<N, T>& b)
+CUDIFF_HOSTDEVICE inline auto operator-(const U& a, const Dual<N, T>& b)
 {
     return OperatorSub<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator*(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator*(const Dual<N, T>& a, const U& b)
 {
     return OperatorMul<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator*(const U& a, const Dual<N, T>& b)
+CUDIFF_HOSTDEVICE inline auto operator*(const U& a, const Dual<N, T>& b)
 {
     return OperatorMul<N, T, U>::call(b, a);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator/(const Dual<N, T>& a, const U& b)
+CUDIFF_HOSTDEVICE inline auto operator/(const Dual<N, T>& a, const U& b)
 {
     return OperatorDiv<N, T, U>::call(a, b);
 }
 
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
-CUDIFF_HOSTDEVICE inline Dual<N, T> operator/(const U& a, const Dual<N, T>& b)
+CUDIFF_HOSTDEVICE inline auto operator/(const U& a, const Dual<N, T>& b)
 {
     return OperatorDiv<N, T, U>::call(b, a);
 }
