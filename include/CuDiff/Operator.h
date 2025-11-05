@@ -21,7 +21,13 @@ struct OperatorAdd
 
     CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorAdd<N, T, U>::call(a, Dual<N, U>(b));
+        using R = decltype(a.val() + b);
+        Dual<N, R> r(a.val() + b);
+        for(size_t i = 0; i < N; ++i)
+        {
+            r.setDerivative(i, a.derivative(i));
+        }
+        return r;
     }
 };
 
@@ -41,12 +47,24 @@ struct OperatorSub
 
     CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorSub<N, T, U>::call(a, Dual<N, U>(b));
+        using R = decltype(a.val() - b);
+        Dual<N, R> r(a.val() - b);
+        for(size_t i = 0; i < N; ++i)
+        {
+            r.setDerivative(i, a.derivative(i));
+        }
+        return r;
     }
 
     CUDIFF_HOSTDEVICE static auto call(const U& a, const Dual<N, T>& b)
     {
-        return OperatorSub<N, T, U>::call(Dual<N, U>(a), b);
+        using R = decltype(a - b.val());
+        Dual<N, R> r(a - b.val());
+        for(size_t i = 0; i < N; ++i)
+        {
+            r.setDerivative(i, -b.derivative(i));
+        }
+        return r;
     }
 };
 
@@ -66,7 +84,13 @@ struct OperatorMul
 
     CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorMul<N, T, U>::call(a, Dual<N, U>(b));
+        using R = decltype(a.val() * b);
+        Dual<N, R> r(a.val() * b);
+        for(size_t i = 0; i < N; ++i)
+        {
+            r.setDerivative(i, a.derivative(i) * b);
+        }
+        return r;
     }
 };
 
@@ -87,12 +111,25 @@ struct OperatorDiv
 
     CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& a, const U& b)
     {
-        return OperatorDiv<N, T, U>::call(a, Dual<N, U>(b));
+        using R = decltype(a.val() / b);
+        Dual<N, R> r(a.val() / b);
+        for(size_t i = 0; i < N; ++i)
+        {
+            r.setDerivative(i, a.derivative(i) / b);
+        }
+        return r;
     }
 
     CUDIFF_HOSTDEVICE static auto call(const U& a, const Dual<N, T>& b)
     {
-        return OperatorDiv<N, T, U>::call(Dual<N, U>(a), b);
+        using R = decltype(a / b.val());
+        Dual<N, R> r(a / b.val());
+        T denom = b.val() * b.val();
+        for(size_t i = 0; i < N; ++i)
+        {
+            r.setDerivative(i, (-a.val() * b.derivative(i)) / denom);
+        }
+        return r;
     }
 };
 
