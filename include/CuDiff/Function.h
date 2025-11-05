@@ -210,6 +210,20 @@ struct OperatorPow
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& f, const Dual<N, T>& g)
+    {
+        auto val = std::pow(f.val(), g.val());
+        auto res = Dual<N, T>(val);
+        auto log = std::log(f.val());
+
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, val * (f.derivative(i) / f.val() * g.val() + log * g.derivative(i)));
+        }
+
+        return res;
+    }
 };
 
 template<int N, typename T>
@@ -282,5 +296,11 @@ template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> pow(const Dual<N, T>& a, const T& n)
 {
     return OperatorPow<N, T>::call(a, n);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> pow(const Dual<N, T>& f, const Dual<N, T>& g)
+{
+    return OperatorPow<N, T>::call(f, g);
 }
 }    // namespace CuDiff
