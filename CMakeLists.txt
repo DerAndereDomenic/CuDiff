@@ -10,8 +10,10 @@ add_library(CuDiff INTERFACE)
 target_include_directories(CuDiff INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 
-if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+if (PROJECT_IS_TOP_LEVEL)
+    enable_language(CUDA)
+
     add_executable(Test)
-    target_sources(Test PRIVATE samples/test/main.cpp)
+    target_sources(Test PRIVATE samples/test/main.cu)
     target_link_libraries(Test PRIVATE CuDiff)
 endif()
