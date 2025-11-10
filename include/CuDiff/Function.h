@@ -287,6 +287,19 @@ struct OperatorMin
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const T& b)
+    {
+        bool takeA = a.val() < b;
+        Dual<N, T> res(takeA ? a.val() : b);
+
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, takeA ? a.derivative(i) : T(0));
+        }
+
+        return res;
+    }
 };
 
 template<int N, typename T>
@@ -300,6 +313,19 @@ struct OperatorMax
         for(int i = 0; i < N; ++i)
         {
             res.setDerivative(i, takeA ? a.derivative(i) : b.derivative(i));
+        }
+
+        return res;
+    }
+
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const T& b)
+    {
+        bool takeA = a.val() > b;
+        Dual<N, T> res(takeA ? a.val() : b);
+
+        for(int i = 0; i < N; ++i)
+        {
+            res.setDerivative(i, takeA ? a.derivative(i) : T(0));
         }
 
         return res;
@@ -463,9 +489,33 @@ CUDIFF_HOSTDEVICE Dual<N, T> min(const Dual<N, T>& a, const Dual<N, T>& b)
 }
 
 template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> min(const Dual<N, T>& a, const T& b)
+{
+    return OperatorMin<N, T>::call(a, b);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> min(const T& a, const Dual<N, T>& b)
+{
+    return OperatorMin<N, T>::call(b, a);
+}
+
+template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> max(const Dual<N, T>& a, const Dual<N, T>& b)
 {
     return OperatorMax<N, T>::call(a, b);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> max(const Dual<N, T>& a, const T& b)
+{
+    return OperatorMax<N, T>::call(a, b);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> max(const T& a, const Dual<N, T>& b)
+{
+    return OperatorMax<N, T>::call(b, a);
 }
 
 template<int N, typename T>
