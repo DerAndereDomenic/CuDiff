@@ -71,7 +71,15 @@ public:
      * @param i The index of the variable
      * @return The derivative value
      */
-    CUDIFF_HOSTDEVICE T derivative(size_t i = 0) const { return _derivatives[i]; }
+    CUDIFF_HOSTDEVICE const T& derivative(size_t i = 0) const { return _derivatives[i]; }
+
+    /**
+     * @brief Get the derivative of variable i, i.e., df/dx_i as mutable reference
+     *
+     * @param i The index of the variable
+     * @return The derivative value
+     */
+    CUDIFF_HOSTDEVICE T& mut_derivative(size_t i = 0) { return _derivatives[i]; }
 
     /**
      * @brief Get the value
@@ -79,6 +87,14 @@ public:
      * @return The value
      */
     CUDIFF_HOSTDEVICE const T& val() const { return _val; }
+
+    /**
+     * @brief Get the value as mutable reference
+     * This may invalidate gradients so this should only be used if gradients are updated manually
+     *
+     * @return A mutable reference to the value
+     */
+    CUDIFF_HOSTDEVICE T& mut_val() { return _val; }
 
 private:
     T _val            = T(0);
