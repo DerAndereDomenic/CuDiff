@@ -213,6 +213,70 @@ struct OperatorNormalize
     }
 };
 
+template<int N, int M, typename Q, glm::qualifier P>
+struct OperatorClamp<N, glm::vec<M, Q, P>>
+{
+    using T = glm::vec<M, Q, P>;
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const Dual<N, T>& lo, const Dual<N, T>& hi)
+    {
+        const auto& x_val  = x.val();
+        const auto& lo_val = lo.val();
+        const auto& hi_val = hi.val();
+        Dual<N, T> res;
+        for(int j = 0; j < M; ++j)
+        {
+            if(x_val[j] < lo_val[j])
+            {
+                res.mut_val()[j] = lo_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = lo.derivative(i)[j];
+            }
+            else if(x_val[j] > hi_val[j])
+            {
+                res.mut_val()[j] = hi_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = hi.derivative(i)[j];
+            }
+            else
+            {
+                res.mut_val()[j] = x_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = x.derivative(i)[j];
+            }
+        }
+        return res;
+    }
+
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const T& lo, const T& hi)
+    {
+        const auto& x_val = x.val();
+        Dual<N, T> res;
+        for(int j = 0; j < M; ++j)
+        {
+            if(x_val[j] < lo[j])
+            {
+                res.mut_val()[j] = lo[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = Q(0);
+            }
+            else if(x_val[j] > hi[j])
+            {
+                res.mut_val()[j] = hi[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = Q(0);
+            }
+            else
+            {
+                res.mut_val()[j] = x_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = x.derivative(i)[j];
+            }
+        }
+
+        return res;
+    }
+};
+
 template<typename vType, typename nType>
 struct OperatorReflect
 {
