@@ -127,7 +127,7 @@ struct OperatorDiv
         auto denom = b.val() * b.val();
         for(size_t i = 0; i < N; ++i)
         {
-            r.setDerivative(i, (-a.val() * b.derivative(i)) / denom);
+            r.setDerivative(i, (-a * b.derivative(i)) / denom);
         }
         return r;
     }
@@ -136,7 +136,7 @@ struct OperatorDiv
 template<int N, typename T>
 struct OperatorNeg
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a) { return Dual<N, T>(0) - a; }
+    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a) { return Dual<N, T>(T(0)) - a; }
 };
 
 // Binary arithmetic operators
@@ -209,7 +209,7 @@ CUDIFF_HOSTDEVICE inline auto operator/(const Dual<N, T>& a, const U& b)
 template<int N, typename T, typename U, typename = std::enable_if_t<!is_dual_v<U>>>
 CUDIFF_HOSTDEVICE inline auto operator/(const U& a, const Dual<N, T>& b)
 {
-    return OperatorDiv<N, T, U>::call(b, a);
+    return OperatorDiv<N, T, U>::call(a, b);
 }
 
 template<int N, typename T>
