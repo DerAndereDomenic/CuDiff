@@ -5,14 +5,53 @@
 
 namespace CuDiff
 {
+
+template<bool _stochastic, int N, typename T>
+struct enable_if_stochastic
+{
+};
+
+template<int N, typename T>
+struct enable_if_stochastic<true, N, T>
+{
+    /**
+     * @brief Set the score with respect to the i-th variable
+     *
+     * @param i The index of the variable
+     * @param score The score value
+     */
+    CUDIFF_HOSTDEVICE void setScore(size_t i, T score) { _scores[i] = score; }
+
+    /**
+     * @brief Get the score of variable i
+     *
+     * @param i The index of the variable
+     * @return The score value
+     */
+    CUDIFF_HOSTDEVICE const T& score(size_t i = 0) const { return _scores[i]; }
+
+    /**
+     * @brief Get the score of variable i as mutable reference
+     *
+     * @param i The index of the variable
+     * @return The score value
+     */
+    CUDIFF_HOSTDEVICE T& mut_score(size_t i = 0) { return _scores[i]; }
+
+protected:
+    T _scores[N] = {
+        T(0),
+    };
+};
+
 /**
  * @brief A class to model a Dual number that tracks derivatives for forward differentiation
  *
  * @tparam N Number of independent variables (number of variables we differentiate towards)
  * @tparam T The datatype
  */
-template<int N = 1, typename T = float>
-class Dual
+template<int N = 1, typename T = float, bool _stochastic = false>
+class Dual : public enable_if_stochastic<_stochastic, N, T>
 {
 public:
     /**
@@ -95,6 +134,33 @@ public:
      * @return A mutable reference to the value
      */
     CUDIFF_HOSTDEVICE T& mut_val() { return _val; }
+
+    template<bool S = _stochastic, typename = std::enable_if_t<S>>
+    CUDIFF_HOSTDEVICE operator Dual<N, T, false>() const
+    {
+        Dual<N, T, false> out(this->val());
+
+        for(int i = 0; i < N; ++i)
+        {
+            out.setDerivative(i, this->derivative(i) + this->score(i) * this->val());
+        }
+
+        return out;
+    }
+
+    template<bool S = !_stochastic, typename = std::enable_if_t<S>>
+    CUDIFF_HOSTDEVICE operator Dual<N, T, true>() const
+    {
+        Dual<N, T, true> out(this->val());
+
+        for(int i = 0; i < N; ++i)
+        {
+            out.setDerivative(i, this->derivative(i));
+            out.setScore(i, T(0));
+        }
+
+        return out;
+    }
 
 private:
     T _val            = T(0);
