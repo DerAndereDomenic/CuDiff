@@ -124,8 +124,7 @@ struct OperatorDiv
         using R = decltype(a.val() / b.val());
         Dual<N, R> r(a.val() / b.val());
         auto denom = b.val() * b.val();
-        if constexpr(std::is_floating_point_v<U>)
-            denom = denom > U(0) ? std::max(1e-5f, denom) : std::min(-1e-5f, denom);
+        if constexpr(std::is_floating_point_v<U>) denom = denom > U(0) ? ::max(1e-5f, denom) : ::min(-1e-5f, denom);
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, (a.derivative(i) * b.val() - a.val() * b.derivative(i)) / denom);
@@ -138,7 +137,7 @@ struct OperatorDiv
         using R = decltype(a.val() / b);
         Dual<N, R> r(a.val() / b);
         U denom = b;
-        if constexpr(std::is_floating_point_v<U>) denom = (b > U(0) ? std::max(1e-5f, b) : std::min(-1e-5f, b));
+        if constexpr(std::is_floating_point_v<U>) denom = (b > U(0) ? ::max(1e-5f, b) : ::min(-1e-5f, b));
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, a.derivative(i) / denom);
@@ -151,8 +150,7 @@ struct OperatorDiv
         using R = decltype(a / b.val());
         Dual<N, R> r(a / b.val());
         auto denom = b.val() * b.val();
-        if constexpr(std::is_floating_point_v<T>)
-            denom = denom > T(0) ? std::max(1e-5f, denom) : std::min(-1e-5f, denom);
+        if constexpr(std::is_floating_point_v<T>) denom = denom > T(0) ? ::max(1e-5f, denom) : ::min(-1e-5f, denom);
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, (-a * b.derivative(i)) / denom);
