@@ -44,7 +44,7 @@ template<typename First,
 CUDIFF_HOSTDEVICE auto wrap(First&& first, Rest&&... rest)
 {
     constexpr int count = 1 + sizeof...(rest);
-    using Q             = dual_value_t<std::decay_t<First>>;
+    using Q             = dual_value_type_t<std::decay_t<First>>;
     using T             = glm::vec<count, Q, P>;
     constexpr int N     = dual_component_count<std::decay_t<First>>::num_variables;
     using R             = Dual<N, T>;

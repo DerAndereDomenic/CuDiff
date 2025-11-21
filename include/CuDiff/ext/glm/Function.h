@@ -282,7 +282,7 @@ struct OperatorReflect
 {
     CUDIFF_HOSTDEVICE static auto call(const vType& v, const nType& n)
     {
-        return v - n * dot(n, v) * dual_value_t<vType>(2);
+        return v - n * dot(n, v) * dual_value_type_t<vType>(2);
     }
 };
 
@@ -291,7 +291,7 @@ struct OperatorRefract
 {
     CUDIFF_HOSTDEVICE static auto call(const IType& I, const NType& N, const etaType& eta)
     {
-        using Q             = dual_value_t<etaType>;
+        using Q             = dual_value_type_t<etaType>;
         const auto dotValue = dot(N, I);
         const auto k        = (Q(1) - eta * eta * (Q(1) - dotValue * dotValue));
         auto result         = (k.val() >= Q(0)) ? (eta * I - (eta * dotValue + sqrt(k)) * N)

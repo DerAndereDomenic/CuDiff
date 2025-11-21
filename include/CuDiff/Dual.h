@@ -129,5 +129,17 @@ struct dual_value_type<Dual<N, T>>
 };
 
 template<typename T>
-using dual_value_t = typename dual_value_type<T>::type;
+using dual_value_type_t = typename dual_value_type<T>::type;
+
+template<typename T>
+struct dual_component_count
+{
+    static constexpr int num_variables = 0;
+};
+
+template<int N, typename T>
+struct dual_component_count<Dual<N, T>>
+{
+    static constexpr int num_variables = N;
+};
 }    // namespace CuDiff
