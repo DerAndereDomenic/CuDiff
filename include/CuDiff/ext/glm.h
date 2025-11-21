@@ -2,3 +2,4 @@
 
 #include <CuDiff/ext/glm/Traits.h>
 #include <CuDiff/ext/glm/Function.h>
+#include <CuDiff/ext/glm/Wrap.h>
