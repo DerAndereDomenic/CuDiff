@@ -142,4 +142,30 @@ struct dual_component_count<Dual<N, T>>
 {
     static constexpr int num_variables = N;
 };
+
+template<typename X>
+CUDIFF_HOSTDEVICE auto value_of(const X& x)
+{
+    if constexpr(is_dual_v<X>)
+    {
+        return x.val();
+    }
+    else
+    {
+        return x;
+    }
+}
+
+template<typename X>
+CUDIFF_HOSTDEVICE auto derivative_of(const X& x, std::size_t i)
+{
+    if constexpr(is_dual_v<X>)
+    {
+        return x.derivative(i);
+    }
+    else
+    {
+        return X(0);
+    }
+}
 }    // namespace CuDiff
