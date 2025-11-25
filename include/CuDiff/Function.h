@@ -124,17 +124,18 @@ struct OperatorAtan
 template<int N, typename T>
 struct OperatorAtan2
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& y, const Dual<N, T>& x)
+    template<typename Atype, typename Btype>
+    CUDIFF_HOSTDEVICE static auto call(const Atype& y, const Btype& x)
     {
-        auto val   = std::atan2(y.val(), x.val());
-        auto denom = x.val() * x.val() + y.val() * y.val();
+        auto val   = std::atan2(value_of(y), value_of(x));
+        auto denom = value_of(x) * value_of(x) + value_of(y) * value_of(y);
         auto res   = Dual<N, T>(val);
 
         for(int i = 0; i < N; ++i)
         {
-            T dy = y.derivative(i);
-            T dx = x.derivative(i);
-            res.setDerivative(i, (x.val() * dy - y.val() * dx) / denom);
+            T dy = derivative_of(y, i);
+            T dx = derivative_of(x, i);
+            res.setDerivative(i, (value_of(x) * dy - value_of(y) * dx) / denom);
         }
 
         return res;
@@ -197,29 +198,16 @@ struct OperatorAbs
 template<int N, typename T>
 struct OperatorPow
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const T& n)
+    template<typename Atype, typename Btype>
+    CUDIFF_HOSTDEVICE static auto call(const Atype& f, const Btype& g)
     {
-        auto val = std::pow(x.val(), n);
+        auto val = std::pow(value_of(f), value_of(g));
         auto res = Dual<N, T>(val);
-        auto pow = std::pow(x.val(), n - T(1));
+        auto log = std::log(value_of(f));
 
         for(int i = 0; i < N; ++i)
         {
-            res.setDerivative(i, n * pow * x.derivative(i));
-        }
-
-        return res;
-    }
-
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& f, const Dual<N, T>& g)
-    {
-        auto val = std::pow(f.val(), g.val());
-        auto res = Dual<N, T>(val);
-        auto log = std::log(f.val());
-
-        for(int i = 0; i < N; ++i)
-        {
-            res.setDerivative(i, val * (f.derivative(i) / f.val() * g.val() + log * g.derivative(i)));
+            res.setDerivative(i, val * (derivative_of(f, i) / value_of(f) * value_of(g) + log * derivative_of(g, i)));
         }
 
         return res;
@@ -275,27 +263,15 @@ struct OperatorCeil
 template<int N, typename T>
 struct OperatorMin
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    template<typename Atype, typename Btype>
+    CUDIFF_HOSTDEVICE static auto call(const Atype& a, const Btype& b)
     {
-        bool takeA = a.val() < b.val();
-        Dual<N, T> res(takeA ? a.val() : b.val());
+        bool takeA = value_of(a) < value_of(b);
+        Dual<N, T> res(takeA ? value_of(a) : value_of(b));
 
         for(int i = 0; i < N; ++i)
         {
-            res.setDerivative(i, takeA ? a.derivative(i) : b.derivative(i));
-        }
-
-        return res;
-    }
-
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const T& b)
-    {
-        bool takeA = a.val() < b;
-        Dual<N, T> res(takeA ? a.val() : b);
-
-        for(int i = 0; i < N; ++i)
-        {
-            res.setDerivative(i, takeA ? a.derivative(i) : T(0));
+            res.setDerivative(i, takeA ? derivative_of(a, i) : derivative_of(b, i));
         }
 
         return res;
@@ -305,27 +281,15 @@ struct OperatorMin
 template<int N, typename T>
 struct OperatorMax
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const Dual<N, T>& b)
+    template<typename Atype, typename Btype>
+    CUDIFF_HOSTDEVICE static auto call(const Atype& a, const Btype& b)
     {
-        bool takeA = a.val() > b.val();
-        Dual<N, T> res(takeA ? a.val() : b.val());
+        bool takeA = value_of(a) > value_of(b);
+        Dual<N, T> res(takeA ? value_of(a) : value_of(b));
 
         for(int i = 0; i < N; ++i)
         {
-            res.setDerivative(i, takeA ? a.derivative(i) : b.derivative(i));
-        }
-
-        return res;
-    }
-
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& a, const T& b)
-    {
-        bool takeA = a.val() > b;
-        Dual<N, T> res(takeA ? a.val() : b);
-
-        for(int i = 0; i < N; ++i)
-        {
-            res.setDerivative(i, takeA ? a.derivative(i) : T(0));
+            res.setDerivative(i, takeA ? derivative_of(a, i) : derivative_of(b, i));
         }
 
         return res;
@@ -335,52 +299,28 @@ struct OperatorMax
 template<int N, typename T>
 struct OperatorClamp
 {
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const Dual<N, T>& lo, const Dual<N, T>& hi)
+    template<typename Atype, typename Btype, typename Ctype>
+    CUDIFF_HOSTDEVICE static auto call(const Atype& x, const Btype& lo, const Ctype& hi)
     {
-        if(x.val() < lo.val())
+        if(value_of(x) < value_of(lo))
         {
-            Dual<N, T> res(lo.val());
+            Dual<N, T> res(value_of(lo));
             for(int i = 0; i < N; ++i)
-                res.setDerivative(i, lo.derivative(i));
+                res.setDerivative(i, derivative_of(lo, i));
             return res;
         }
-        else if(x.val() > hi.val())
+        else if(value_of(x) > value_of(hi))
         {
-            Dual<N, T> res(hi.val());
+            Dual<N, T> res(value_of(hi));
             for(int i = 0; i < N; ++i)
-                res.setDerivative(i, hi.derivative(i));
+                res.setDerivative(i, derivative_of(hi, i));
             return res;
         }
         else
         {
-            Dual<N, T> res(x.val());
+            Dual<N, T> res(value_of(x));
             for(int i = 0; i < N; ++i)
-                res.setDerivative(i, x.derivative(i));
-            return res;
-        }
-    }
-
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Dual<N, T>& x, const T& lo, const T& hi)
-    {
-        if(x.val() < lo)
-        {
-            Dual<N, T> res(lo);
-            for(int i = 0; i < N; ++i)
-                res.setDerivative(i, T(0));
-            return res;
-        }
-        else if(x.val() > hi)
-        {
-            Dual<N, T> res(hi);
-            for(int i = 0; i < N; ++i)
-                res.setDerivative(i, T(0));
-            return res;
-        }
-        else
-        {
-            Dual<N, T> res(x.val());
-            for(int i = 0; i < N; ++i)
-                res.setDerivative(i, x.derivative(i));
+                res.setDerivative(i, derivative_of(x, i));
             return res;
         }
     }
@@ -460,6 +400,12 @@ CUDIFF_HOSTDEVICE Dual<N, T> pow(const Dual<N, T>& a, const T& n)
 
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> pow(const Dual<N, T>& f, const Dual<N, T>& g)
+{
+    return OperatorPow<N, T>::call(f, g);
+}
+
+template<int N, typename T>
+CUDIFF_HOSTDEVICE Dual<N, T> pow(const T& f, const Dual<N, T>& g)
 {
     return OperatorPow<N, T>::call(f, g);
 }
