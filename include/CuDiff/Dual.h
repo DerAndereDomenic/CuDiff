@@ -24,7 +24,7 @@ public:
      * @brief Constructor
      * @param val The value
      */
-    CUDIFF_HOSTDEVICE Dual(T val) : _val(val) {}
+    CUDIFF_HOSTDEVICE explicit Dual(T val) : _val(val) {}
 
     /**
      * @brief Create a dual variable that tracks derivatives with respect to variable_index.
