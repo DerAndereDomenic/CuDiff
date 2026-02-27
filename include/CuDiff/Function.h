@@ -20,6 +20,8 @@ struct OperatorSqrt
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::sqrt(x); }
 };
 
 template<int N, typename T>
@@ -38,6 +40,8 @@ struct OperatorSin
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::sin(x); }
 };
 
 template<int N, typename T>
@@ -56,6 +60,8 @@ struct OperatorCos
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::cos(x); }
 };
 
 template<int N, typename T>
@@ -65,6 +71,8 @@ struct OperatorTan
     {
         return OperatorSin<N, T>::call(x) / OperatorCos<N, T>::call(x);
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::tan(x); }
 };
 
 template<int N, typename T>
@@ -83,6 +91,8 @@ struct OperatorAsin
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::asin(x); }
 };
 
 template<int N, typename T>
@@ -101,6 +111,8 @@ struct OperatorAcos
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::acos(x); }
 };
 
 template<int N, typename T>
@@ -119,13 +131,14 @@ struct OperatorAtan
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::atan(x); }
 };
 
 template<int N, typename T>
 struct OperatorAtan2
 {
-    template<typename Atype, typename Btype>
-    CUDIFF_HOSTDEVICE static auto call(const Atype& y, const Btype& x)
+    CUDIFF_HOSTDEVICE static auto call(const Dual<N, T>& y, const Dual<N, T>& x)
     {
         auto val   = std::atan2(value_of(y), value_of(x));
         auto denom = value_of(x) * value_of(x) + value_of(y) * value_of(y);
@@ -139,6 +152,12 @@ struct OperatorAtan2
         }
 
         return res;
+    }
+
+    template<typename T>
+    CUDIFF_HOSTDEVICE static T call(const T& y, const T& x)
+    {
+        return std::atan2(y, x);
     }
 };
 
@@ -157,6 +176,8 @@ struct OperatorExp
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::exp(x); }
 };
 
 template<int N, typename T>
@@ -174,6 +195,8 @@ struct OperatorLog
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::log(x); }
 };
 
 template<int N, typename T>
@@ -193,6 +216,8 @@ struct OperatorAbs
 
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::abs(x); }
 };
 
 template<int N, typename T>
@@ -212,6 +237,12 @@ struct OperatorPow
 
         return res;
     }
+
+    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
+    CUDIFF_HOSTDEVICE static T call(const Atype& f, const Atype& g)
+    {
+        return std::pow(f, g);
+    }
 };
 
 template<int N, typename T>
@@ -230,6 +261,8 @@ struct OperatorSign
         }
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return (x > T(0)) ? T(1) : (x < T(0)) ? T(-1) : T(0); }
 };
 
 template<int N, typename T>
@@ -244,6 +277,8 @@ struct OperatorFloor
         }
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::floor(x); }
 };
 
 template<int N, typename T>
@@ -258,6 +293,8 @@ struct OperatorCeil
         }
         return res;
     }
+
+    CUDIFF_HOSTDEVICE static T call(const T& x) { return std::ceil(x); }
 };
 
 template<int N, typename T>
@@ -276,6 +313,12 @@ struct OperatorMin
 
         return res;
     }
+
+    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
+    CUDIFF_HOSTDEVICE static T call(const Atype& a, const Atype& b)
+    {
+        return a < b ? a : b;
+    }
 };
 
 template<int N, typename T>
@@ -293,6 +336,12 @@ struct OperatorMax
         }
 
         return res;
+    }
+
+    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
+    CUDIFF_HOSTDEVICE static T call(const Atype& a, const Atype& b)
+    {
+        return a > b ? a : b;
     }
 };
 
@@ -324,6 +373,17 @@ struct OperatorClamp
             return res;
         }
     }
+
+    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
+    CUDIFF_HOSTDEVICE static T call(const Atype& x, const Atype& lo, const Atype& hi)
+    {
+        if(x < lo)
+            return lo;
+        else if(x > hi)
+            return hi;
+        else
+            return x;
+    }
 };
 
 template<int N, typename T>
@@ -332,10 +392,22 @@ CUDIFF_HOSTDEVICE Dual<N, T> sqrt(const Dual<N, T>& a)
     return OperatorSqrt<N, T>::call(a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T sqrt(const T& a)
+{
+    return OperatorSqrt<0, T>::call(a);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> sin(const Dual<N, T>& a)
 {
     return OperatorSin<N, T>::call(a);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T sin(const T& a)
+{
+    return OperatorSin<0, T>::call(a);
 }
 
 template<int N, typename T>
@@ -344,10 +416,22 @@ CUDIFF_HOSTDEVICE Dual<N, T> cos(const Dual<N, T>& a)
     return OperatorCos<N, T>::call(a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T cos(const T& a)
+{
+    return OperatorCos<0, T>::call(a);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> tan(const Dual<N, T>& a)
 {
     return OperatorTan<N, T>::call(a);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T tan(const T& a)
+{
+    return OperatorTan<0, T>::call(a);
 }
 
 template<int N, typename T>
@@ -356,10 +440,22 @@ CUDIFF_HOSTDEVICE Dual<N, T> asin(const Dual<N, T>& a)
     return OperatorAsin<N, T>::call(a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T asin(const T& a)
+{
+    return OperatorAsin<0, T>::call(a);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> acos(const Dual<N, T>& a)
 {
     return OperatorAcos<N, T>::call(a);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T acos(const T& a)
+{
+    return OperatorAcos<0, T>::call(a);
 }
 
 template<int N, typename T>
@@ -368,10 +464,22 @@ CUDIFF_HOSTDEVICE Dual<N, T> atan(const Dual<N, T>& a)
     return OperatorAtan<N, T>::call(a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T atan(const T& a)
+{
+    return OperatorAtan<0, T>::call(a);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> atan2(const Dual<N, T>& y, const Dual<N, T>& x)
 {
     return OperatorAtan2<N, T>::call(y, x);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T atan2(const T& y, const T& x)
+{
+    return OperatorAtan2<0, T>::call(y, x);
 }
 
 template<int N, typename T>
@@ -380,16 +488,34 @@ CUDIFF_HOSTDEVICE Dual<N, T> exp(const Dual<N, T>& a)
     return OperatorExp<N, T>::call(a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T exp(const T& a)
+{
+    return OperatorExp<0, T>::call(a);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> log(const Dual<N, T>& a)
 {
     return OperatorLog<N, T>::call(a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T log(const T& a)
+{
+    return OperatorLog<0, T>::call(a);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> abs(const Dual<N, T>& a)
 {
     return OperatorAbs<N, T>::call(a);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T abs(const T& a)
+{
+    return OperatorAbs<0, T>::call(a);
 }
 
 template<int N, typename T>
@@ -410,10 +536,22 @@ CUDIFF_HOSTDEVICE Dual<N, T> pow(const T& f, const Dual<N, T>& g)
     return OperatorPow<N, T>::call(f, g);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T pow(const T& f, const T& g)
+{
+    return OperatorPow<0, T>::call(f, g);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> sign(const Dual<N, T>& x)
 {
     return OperatorSign<N, T>::call(x);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T sign(const T& x)
+{
+    return OperatorSign<0, T>::call(x);
 }
 
 template<int N, typename T>
@@ -422,10 +560,22 @@ CUDIFF_HOSTDEVICE Dual<N, T> floor(const Dual<N, T>& x)
     return OperatorFloor<N, T>::call(x);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T floor(const T& x)
+{
+    return OperatorFloor<0, T>::call(x);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> ceil(const Dual<N, T>& x)
 {
     return OperatorCeil<N, T>::call(x);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T ceil(const T& x)
+{
+    return OperatorCeil<0, T>::call(x);
 }
 
 template<int N, typename T>
@@ -446,6 +596,12 @@ CUDIFF_HOSTDEVICE Dual<N, T> min(const T& a, const Dual<N, T>& b)
     return OperatorMin<N, T>::call(b, a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T min(const T& a, const T& b)
+{
+    return OperatorMin<0, T>::call(a, b);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> max(const Dual<N, T>& a, const Dual<N, T>& b)
 {
@@ -464,6 +620,12 @@ CUDIFF_HOSTDEVICE Dual<N, T> max(const T& a, const Dual<N, T>& b)
     return OperatorMax<N, T>::call(b, a);
 }
 
+template<typename T>
+CUDIFF_HOSTDEVICE T max(const T& a, const T& b)
+{
+    return OperatorMax<0, T>::call(a, b);
+}
+
 template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> clamp(const Dual<N, T>& x, const Dual<N, T>& lo, const Dual<N, T>& hi)
 {
@@ -474,5 +636,11 @@ template<int N, typename T>
 CUDIFF_HOSTDEVICE Dual<N, T> clamp(const Dual<N, T>& x, const T& lo, const T& hi)
 {
     return OperatorClamp<N, T>::call(x, lo, hi);
+}
+
+template<typename T>
+CUDIFF_HOSTDEVICE T clamp(const T& x, const T& lo, const T& hi)
+{
+    return OperatorClamp<0, T>::call(x, lo, hi);
 }
 }    // namespace CuDiff
