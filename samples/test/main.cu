@@ -180,9 +180,9 @@ int main()
 
         auto tx = fx - x0;
 
-        CuDiff::Dual<3> c0 = texture[x0];
+        CuDiff::Dual<3> c0 = CuDiff::Dual<3>(texture[x0]);
         c0.setDerivative(1, 1.0f);
-        CuDiff::Dual<3> c1 = texture[x1];
+        CuDiff::Dual<3> c1 = CuDiff::Dual<3>(texture[x1]);
         c1.setDerivative(2, 1.0f);
 
         auto val = (1.0f - tx) * c0 + tx * c1;
@@ -258,5 +258,23 @@ int main()
         printf("%f %f %f\n", M[0].x, M[1].x, M[2].x);
         printf("%f %f %f\n", M[0].y, M[1].y, M[2].y);
         printf("%f %f %f\n", M[0].z, M[1].z, M[2].z);
+    }
+
+    {
+        auto [v] = CuDiff::make_variables<3>(glm::normalize(glm::vec3(-1, 2, -3)));
+
+        auto [x, y, z] = CuDiff::unwrap(v);
+
+        auto theta = CuDiff::acos(y);
+        auto phi   = CuDiff::atan2(z, x);
+
+        printf("%f %f\n", phi.val(), theta.val());
+        printf("%f %f\n%f %f\n%f %f\n",
+               phi.derivative(0),
+               theta.derivative(0),
+               phi.derivative(1),
+               theta.derivative(1),
+               phi.derivative(2),
+               theta.derivative(2));
     }
 }
