@@ -28,4 +28,8 @@ if (PROJECT_IS_TOP_LEVEL)
     target_sources(Test PRIVATE samples/test/main.cu)
     target_link_libraries(Test PRIVATE CuDiff glm)
 
+    add_executable(Benchmark)
+    target_sources(Benchmark PRIVATE samples/Benchmark/main.cu)
+    target_link_libraries(Benchmark PRIVATE CuDiff glm)
+
 endif()
