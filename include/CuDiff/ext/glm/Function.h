@@ -6,142 +6,62 @@
 
 namespace CuDiff
 {
-template<int N, int M, typename Q, glm::qualifier P>
-struct OperatorDot;
 
-template<int N, typename Q, glm::qualifier P>
-struct OperatorDot<N, 1, Q, P>
+template<typename A, typename B, bool = !is_dual_v<A> && !is_dual_v<B>>
+struct OperatorDot
 {
-    template<typename Atype, typename Btype>
-    CUDIFF_HOSTDEVICE static Dual<N, Q> call(const Atype& v, const Btype& w)
+    CUDIFF_HOSTDEVICE static auto call(const A& v, const B& w) { return glm::dot(v, w); }
+};
+
+template<typename A, typename B>
+struct OperatorDot<A, B, false>
+{
+    CUDIFF_HOSTDEVICE
+    static auto call(const A& v, const B& w)
     {
         auto val_v = value_of(v);
         auto val_w = value_of(w);
-        Dual<N, Q> res(glm::dot(val_v, val_w));
+
+        auto val = glm::dot(val_v, val_w);
+
+        constexpr int N = dual_component_count<std::conditional_t<is_dual_v<A>, A, B>>::num_variables;
+        using ValueType = decltype(val);
+
+        Dual<N, ValueType> res(val);
 
         for(int i = 0; i < N; ++i)
         {
-            res.setDerivative(i, (derivative_of(v, i).x * val_w.x + val_v.x * derivative_of(w, i).x));
+            auto dv = derivative_of(v, i);
+            auto dw = derivative_of(w, i);
+
+            res.setDerivative(i, glm::dot(dv, val_w) + glm::dot(val_v, dw));
         }
 
         return res;
     }
-
-    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
-    CUDIFF_HOSTDEVICE static Q call(const Atype& v, const Atype& w)
-    {
-        return glm::dot(v, w);
-    }
 };
 
-template<int N, typename Q, glm::qualifier P>
-struct OperatorDot<N, 2, Q, P>
-{
-    template<typename Atype, typename Btype>
-    CUDIFF_HOSTDEVICE static Dual<N, Q> call(const Atype& v, const Btype& w)
-    {
-        auto val_v = value_of(v);
-        auto val_w = value_of(w);
-        Dual<N, Q> res(glm::dot(val_v, val_w));
-
-        for(int i = 0; i < N; ++i)
-        {
-            res.setDerivative(i,
-                              (derivative_of(v, i).x * val_w.x + val_v.x * derivative_of(w, i).x) +
-                                  (derivative_of(v, i).y * val_w.y + val_v.y * derivative_of(w, i).y));
-        }
-
-        return res;
-    }
-
-    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
-    CUDIFF_HOSTDEVICE static Q call(const Atype& v, const Atype& w)
-    {
-        return glm::dot(v, w);
-    }
-};
-
-template<int N, typename Q, glm::qualifier P>
-struct OperatorDot<N, 3, Q, P>
-{
-    template<typename Atype, typename Btype>
-    CUDIFF_HOSTDEVICE static Dual<N, Q> call(const Atype& v, const Btype& w)
-    {
-        auto val_v = value_of(v);
-        auto val_w = value_of(w);
-        Dual<N, Q> res(glm::dot(val_v, val_w));
-
-        for(int i = 0; i < N; ++i)
-        {
-            res.setDerivative(i,
-                              (derivative_of(v, i).x * val_w.x + val_v.x * derivative_of(w, i).x) +
-                                  (derivative_of(v, i).y * val_w.y + val_v.y * derivative_of(w, i).y) +
-                                  (derivative_of(v, i).z * val_w.z + val_v.z * derivative_of(w, i).z));
-        }
-
-        return res;
-    }
-
-    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
-    CUDIFF_HOSTDEVICE static Q call(const Atype& v, const Atype& w)
-    {
-        return glm::dot(v, w);
-    }
-};
-
-template<int N, typename Q, glm::qualifier P>
-struct OperatorDot<N, 4, Q, P>
-{
-    CUDIFF_HOSTDEVICE static Dual<N, Q> call(const Dual<N, glm::vec<4, Q, P>>& v, const Dual<N, glm::vec<4, Q, P>>& w)
-    {
-        auto val_v = value_of(v);
-        auto val_w = value_of(w);
-        Dual<N, Q> res(glm::dot(val_v, val_w));
-
-        for(int i = 0; i < N; ++i)
-        {
-            res.setDerivative(i,
-                              (derivative_of(v, i).x * val_w.x + val_v.x * derivative_of(w, i).x) +
-                                  (derivative_of(v, i).y * val_w.y + val_v.y * derivative_of(w, i).y) +
-                                  (derivative_of(v, i).z * val_w.z + val_v.z * derivative_of(w, i).z) +
-                                  (derivative_of(v, i).w * val_w.w + val_v.w * derivative_of(w, i).w));
-        }
-
-        return res;
-    }
-
-    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
-    CUDIFF_HOSTDEVICE static Q call(const Atype& v, const Atype& w)
-    {
-        return glm::dot(v, w);
-    }
-};
-
-template<int N, int M, typename Q, glm::qualifier P>
+template<typename T>
 struct OperatorLength
 {
-    CUDIFF_HOSTDEVICE static Dual<N, Q> call(const Dual<N, glm::vec<M, Q, P>>& v) { return sqrt(dot(v, v)); }
-
-    CUDIFF_HOSTDEVICE static Q call(const glm::vec<M, Q, P>& v) { return glm::length(v); }
+    CUDIFF_HOSTDEVICE static auto call(const T& v)
+    {
+        return OperatorSqrt<decltype(OperatorDot<T, T>::call(v, v))>::call(OperatorDot<T, T>::call(v, v));
+    }
 };
 
-template<int N, int M, typename Q, glm::qualifier P>
+template<typename T>
 struct OperatorNormalize
 {
-    CUDIFF_HOSTDEVICE static Dual<N, glm::vec<M, Q, P>> call(const Dual<N, glm::vec<M, Q, P>>& v)
-    {
-        return v / length(v);
-    }
-
-    CUDIFF_HOSTDEVICE static glm::vec<M, Q, P> call(const glm::vec<M, Q, P>& v) { return glm::normalize(v); }
+    CUDIFF_HOSTDEVICE static auto call(const T& v) { return v / OperatorLength<T>::call(v); }
 };
 
 template<int N, int M, typename Q, glm::qualifier P>
-struct OperatorClamp<N, glm::vec<M, Q, P>>
+struct OperatorClamp<Dual<N, glm::vec<M, Q, P>>, Dual<N, glm::vec<M, Q, P>>, Dual<N, glm::vec<M, Q, P>>, false>
 {
     using T = glm::vec<M, Q, P>;
     template<typename Atype, typename Btype, typename Ctype>
-    CUDIFF_HOSTDEVICE static Dual<N, T> call(const Atype& x, const Btype& lo, const Ctype& hi)
+    CUDIFF_HOSTDEVICE static auto call(const Atype& x, const Btype& lo, const Ctype& hi)
     {
         const auto x_val  = value_of(x);
         const auto lo_val = value_of(lo);
@@ -170,19 +90,39 @@ struct OperatorClamp<N, glm::vec<M, Q, P>>
         }
         return res;
     }
+};
 
-    template<typename Atype, typename = std::enable_if_t<!is_dual_v<Atype>>>
-    CUDIFF_HOSTDEVICE static T call(const Atype& x, const Atype& lo, const Atype& hi)
+template<int N, int M, typename Q, glm::qualifier P>
+struct OperatorClamp<Dual<N, glm::vec<M, Q, P>>, glm::vec<M, Q, P>, glm::vec<M, Q, P>, false>
+{
+    using T = glm::vec<M, Q, P>;
+    template<typename Atype, typename Btype, typename Ctype>
+    CUDIFF_HOSTDEVICE static auto call(const Atype& x, const Btype& lo, const Ctype& hi)
     {
-        T res;
+        const auto x_val  = value_of(x);
+        const auto lo_val = value_of(lo);
+        const auto hi_val = value_of(hi);
+        Dual<N, T> res;
         for(int j = 0; j < M; ++j)
         {
-            if(x[j] < lo[j])
-                res[j] = lo[j];
-            else if(x[j] > hi[j])
-                res[j] = hi[j];
+            if(x_val[j] < lo_val[j])
+            {
+                res.mut_val()[j] = lo_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = derivative_of(lo, i)[j];
+            }
+            else if(x_val[j] > hi_val[j])
+            {
+                res.mut_val()[j] = hi_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = derivative_of(hi, i)[j];
+            }
             else
-                res[j] = x[j];
+            {
+                res.mut_val()[j] = x_val[j];
+                for(int i = 0; i < N; ++i)
+                    res.mut_derivative(i)[j] = derivative_of(x, i)[j];
+            }
         }
         return res;
     }
@@ -193,13 +133,7 @@ struct OperatorReflect
 {
     CUDIFF_HOSTDEVICE static auto call(const vType& v, const nType& n)
     {
-        return v - n * dot(n, v) * dual_value_type_t<vType>(2);
-    }
-
-    template<typename vType, typename = std::enable_if_t<!is_dual_v<vType>>>
-    CUDIFF_HOSTDEVICE static auto call(const vType& v, const vType& n)
-    {
-        return v - n * dot(n, v) * decltype(v)(2);
+        return v - n * OperatorDot<nType, vType>::call(n, v) * dual_value_type_t<vType>(2);
     }
 };
 
@@ -209,66 +143,32 @@ struct OperatorRefract
     CUDIFF_HOSTDEVICE static auto call(const IType& I, const NType& N, const etaType& eta)
     {
         using Q             = dual_value_type_t<etaType>;
-        const auto dotValue = dot(N, I);
-        const auto k        = (Q(1) - eta * eta * (Q(1) - dotValue * dotValue));
-        auto result         = (k.val() >= Q(0)) ? (eta * I - (eta * dotValue + sqrt(k)) * N)
-                                                : decltype((eta * I - (eta * dotValue + sqrt(k)) * N))();
-        return result;
-    }
+        const auto dotValue = OperatorDot<NType, IType>::call(N, I);
+        auto k              = (Q(1) - eta * eta * (Q(1) - dotValue * dotValue));
+        auto result         = (value_of(k) >= Q(0))
+                                  ? (eta * I - (eta * dotValue + OperatorSqrt<decltype(k)>::call(k)) * N)
+                                  : decltype((eta * I - (eta * dotValue + OperatorSqrt<decltype(k)>::call(k)) * N))();
 
-    template<typename ITyp, typename = std::enable_if_t<!is_dual_v<ITyp>>>
-    CUDIFF_HOSTDEVICE static auto call(const ITyp& I, const ITyp& N, const ITyp& eta)
-    {
-        return glm::refract(I, N, eta);
+        return result;
     }
 };
 
-template<int N, int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE Dual<N, Q> dot(const Dual<N, glm::vec<M, Q, P>>& v, const Dual<N, glm::vec<M, Q, P>>& w)
+template<typename Atype, typename Btype>
+CUDIFF_HOSTDEVICE auto dot(const Atype& v, const Btype& w)
 {
-    return OperatorDot<N, M, Q, P>::call(v, w);
+    return OperatorDot<Atype, Btype>::call(v, w);
 }
 
-template<int N, int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE Dual<N, Q> dot(const Dual<N, glm::vec<M, Q, P>>& v, const glm::vec<M, Q, P>& w)
+template<typename T>
+CUDIFF_HOSTDEVICE auto length(const T& v)
 {
-    return OperatorDot<N, M, Q, P>::call(v, w);
+    return OperatorLength<T>::call(v);
 }
 
-template<int N, int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE Dual<N, Q> dot(const glm::vec<M, Q, P>& v, const Dual<N, glm::vec<M, Q, P>>& w)
+template<typename T>
+CUDIFF_HOSTDEVICE auto normalize(const T& v)
 {
-    return OperatorDot<N, M, Q, P>::call(v, w);
-}
-
-template<int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE auto dot(const glm::vec<M, Q, P>& v, const glm::vec<M, Q, P>& w)
-{
-    return OperatorDot<0, M, Q, P>::call(v, w);
-}
-
-template<int N, int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE Dual<N, Q> length(const Dual<N, glm::vec<M, Q, P>>& v)
-{
-    return OperatorLength<N, M, Q, P>::call(v);
-}
-
-template<int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE auto length(const glm::vec<M, Q, P>& v)
-{
-    return OperatorLength<0, M, Q, P>::call(v);
-}
-
-template<int N, int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE Dual<N, glm::vec<M, Q, P>> normalize(const Dual<N, glm::vec<M, Q, P>>& v)
-{
-    return OperatorNormalize<N, M, Q, P>::call(v);
-}
-
-template<int M, typename Q, glm::qualifier P>
-CUDIFF_HOSTDEVICE auto normalize(const glm::vec<M, Q, P>& v)
-{
-    return OperatorNormalize<0, M, Q, P>::call(v);
+    return OperatorNormalize<T>::call(v);
 }
 
 template<typename vType, typename nType>
