@@ -58,6 +58,18 @@ CUDIFF_HOSTDEVICE auto wrap(First&& first, Rest&&... rest)
     return result;
 }
 
+template<typename First,
+         typename... Rest,
+         typename = std::enable_if_t<!is_dual<std::decay_t<First>>::value &&
+                                     (std::is_same_v<std::decay_t<First>, std::decay_t<Rest>> && ...)>>
+CUDIFF_HOSTDEVICE auto wrap(First&& first, Rest&&... rest)
+{
+    constexpr int count = 1 + sizeof...(rest);
+    using Q             = std::decay_t<First>;
+
+    return glm::vec<count, Q>(std::forward<First>(first), std::forward<Rest>(rest)...);
+}
+
 namespace impl
 {
 template<int N, int M, typename Q, glm::qualifier P>
@@ -88,11 +100,35 @@ struct unwrap_impl
         return CuDiff::make_tuple(make_value<Js>(v, std::make_index_sequence<N> {})...);
     }
 };
+
+template<int M, typename Q, glm::qualifier P>
+struct unwrap_impl<0, M, Q, P>
+{
+    template<std::size_t J>
+    CUDIFF_HOSTDEVICE static Q make_value(const glm::vec<M, Q, P>& v)
+    {
+        Q out(v[J]);
+
+        return out;
+    }
+
+    template<std::size_t... Js>
+    CUDIFF_HOSTDEVICE static auto apply(const glm::vec<M, Q, P>& v, std::index_sequence<Js...>)
+    {
+        return CuDiff::make_tuple(make_value<Js>(v)...);
+    }
+};
 }    // namespace impl
 
 template<int N, int M, typename Q, glm::qualifier P>
 CUDIFF_HOSTDEVICE auto unwrap(const Dual<N, glm::vec<M, Q, P>>& v)
 {
     return impl::unwrap_impl<N, M, Q, P>::apply(v, std::make_index_sequence<M> {});
+}
+
+template<int M, typename Q, glm::qualifier P>
+CUDIFF_HOSTDEVICE auto unwrap(const glm::vec<M, Q, P>& v)
+{
+    return impl::unwrap_impl<0, M, Q, P>::apply(v, std::make_index_sequence<M> {});
 }
 }    // namespace CuDiff

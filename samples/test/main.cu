@@ -277,4 +277,15 @@ int main()
                phi.derivative(2),
                theta.derivative(2));
     }
+
+    {
+        glm::vec3 v    = glm::vec3(1, 2, 3);
+        auto [x, y, z] = CuDiff::unwrap(v);
+
+        printf("%f %f %f\n", x, y, z);
+
+        auto w = CuDiff::wrap(x, y, z);
+
+        printf("%f %f %f\n", v.x, v.y, v.z);
+    }
 }
