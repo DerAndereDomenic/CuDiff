@@ -63,7 +63,7 @@ struct OperatorDiv
         Dual<N, R> r(value_of(a) / value_of(b));
         auto denom = value_of(b) * value_of(b);
         if constexpr(std::is_floating_point_v<dual_value_type_t<Btype>>)
-            denom = denom > dual_value_type_t<Btype>(0) ? ::max(1e-5f, denom) : ::min(-1e-5f, denom);
+            denom = denom > dual_value_type_t<Btype>(0) ? std::max(1e-5f, denom) : std::min(-1e-5f, denom);
         for(size_t i = 0; i < N; ++i)
         {
             r.setDerivative(i, (derivative_of(a, i) * value_of(b) - value_of(a) * derivative_of(b, i)) / denom);
