@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CuDiff/Dual.h>
+#include <algorithm>
 
 namespace CuDiff
 {
