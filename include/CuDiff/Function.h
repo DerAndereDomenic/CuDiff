@@ -1,6 +1,7 @@
 #pragma once
 
 #include <CuDiff/Dual.h>
+#include <algorithm>
 
 namespace CuDiff
 {
@@ -403,7 +404,10 @@ template<typename Atype,
          bool = !is_dual_v<Atype> && !is_dual_v<Btype> && !is_dual_v<Ctype>>
 struct OperatorClamp
 {
-    CUDIFF_HOSTDEVICE static auto call(const Atype& x, const Btype& lo, const Ctype& hi) { return clamp(x, lo, hi); }
+    CUDIFF_HOSTDEVICE static auto call(const Atype& x, const Btype& lo, const Ctype& hi)
+    {
+        return x < lo ? lo : (x > hi ? hi : x);
+    }
 };
 
 template<typename Atype, typename Btype, typename Ctype>
