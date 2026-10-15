@@ -375,7 +375,7 @@ struct OperatorMin<Atype, Btype, false>
 template<typename Atype, typename Btype, bool = !is_dual_v<Atype> && !is_dual_v<Btype>>
 struct OperatorMax
 {
-    CUDIFF_HOSTDEVICE static auto call(const Atype& a, const Btype& b) { return std::max(a, b); }
+    CUDIFF_HOSTDEVICE static auto call(const Atype& a, const Btype& b) { return a > b ? a : b; }
 };
 
 template<typename Atype, typename Btype>
