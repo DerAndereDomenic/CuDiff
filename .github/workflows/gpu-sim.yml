@@ -1,0 +1,71 @@
+name: GPU Simulator
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# the gtest suite and runs it on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "include/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: CUDA 13.0, simulated H100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@deff5781e8adfd83dec98dd5242dcbc96a564773 # v0.1.10
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      # 90-virtual embeds PTX only, which the simulator runs. The simulator
+      # needs a shared CUDA runtime. gtest_discover_tests normally runs the
+      # test binary right after linking, so discovery is moved to test time
+      # (the build machine has no GPU).
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CUDA_ARCHITECTURES=90-virtual \
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \
+            -DCMAKE_GTEST_DISCOVER_TESTS_DISCOVERY_MODE=PRE_TEST
+
+      - name: Build
+        run: cmake --build build --target CuDiffTests -j3
+
+      # The simulator can print a VirtualGPU error and still exit 0, and the
+      # GPU parity tests must not be skipped, so the output is checked too.
+      # PiecewiseFunctionsAndDivisionBehaveAsExpected is excluded: it is host
+      # code and fails on any platform (its last check expects d(x/y)/dx =
+      # 0.01 for y = 1e-7, but the derivative is 1/y = 1e7).
+      - name: Test
+        run: |
+          set -o pipefail
+          vgpu run ./bin/CuDiffTests \
+            --gtest_filter=-CuDiffScalar.PiecewiseFunctionsAndDivisionBehaveAsExpected \
+            2>&1 | tee test.log
+          if grep -i -E "VirtualGPU error|no CUDA-capable device|no device|SKIPPED" test.log; then exit 1; fi
+          grep -F "[       OK ] CuDiffGPU.ScalarCompositeMatchesHost" test.log
+          grep -F "[       OK ] CuDiffGPU.VectorNormalizeMatchesHost" test.log
+          grep -F "[  PASSED  ] 11 tests." test.log
