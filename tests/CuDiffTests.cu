@@ -39,7 +39,7 @@ void expect_vec_near(const glm::vec<N, T, P>& actual, const glm::vec<N, T, P>& e
 template<int N, typename T>
 void expect_dual_near(const CuDiff::Dual<N, T>& actual,
                       const T& expected_value,
-                      const std::array<T, N>& expected_derivatives,
+                      const std::array<T, static_cast<std::size_t>(N)>& expected_derivatives,
                       float tol = kTol)
 {
     expect_near_scalar(actual.val(), expected_value, tol);
@@ -52,7 +52,7 @@ void expect_dual_near(const CuDiff::Dual<N, T>& actual,
 template<int N, glm::length_t L, typename Q, glm::qualifier P>
 void expect_dual_near(const CuDiff::Dual<N, glm::vec<L, Q, P>>& actual,
                       const glm::vec<L, Q, P>& expected_value,
-                      const std::array<glm::vec<L, Q, P>, N>& expected_derivatives,
+                      const std::array<glm::vec<L, Q, P>, static_cast<std::size_t>(N)>& expected_derivatives,
                       float tol = kTol)
 {
     expect_vec_near(actual.val(), expected_value, tol);
